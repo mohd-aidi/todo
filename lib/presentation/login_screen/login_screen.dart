@@ -7,8 +7,8 @@ import 'package:todo/widgets/app_bar/appbar_title.dart';
 import 'package:todo/widgets/app_bar/custom_app_bar.dart';
 import 'package:todo/widgets/custom_elevated_button.dart';
 import 'package:todo/widgets/custom_text_form_field.dart';
-import 'package:todo/data/models/loginDeviceAuth/post_login_device_auth_req.dart';
-import 'package:todo/data/models/loginDeviceAuth/post_login_device_auth_resp.dart';
+import 'package:todo/data/models/getLoginAuth/get_get_login_auth_resp.dart';
+import 'package:todo/core/constants/general.dart';
 
 // ignore_for_file: must_be_immutable
 class LoginScreen extends GetWidget<LoginController> {
@@ -163,32 +163,30 @@ class LoginScreen extends GetWidget<LoginController> {
     );
   }
 
-  /// calls the [https://nodedemo.dhiwise.co/device/auth/login] API
+  /// calls the [https://elesen.mbpj.gov.my/api/auth/login?username=superadmin&password=Asuperadmin2018elesen&rw_user=1] API
   ///
-  /// validates the form input fields and executes the API if all the fields are valid
-  /// It has [PostLoginDeviceAuthReq] as a parameter which will be passed as a API request body
+  /// It has [GetGetLoginAuthReq] as a parameter which will be passed as a API request body
   /// If the call is successful, the function calls the `_onPostLoginSuccess()` function.
   /// If the call fails, the function calls the `_onPostLoginError()` function.
   ///
   /// Throws a `NoInternetException` if there is no internet connection.
   Future<void> postLogin() async {
-    if (_formKey.currentState!.validate()) {
-      PostLoginDeviceAuthReq postLoginDeviceAuthReq = PostLoginDeviceAuthReq(
-        username: controller.emailController.text,
-        password: controller.passwordController.text,
+    Map<String, dynamic> queryParams = {
+      'username': controller.emailController.text,
+      'password': controller.passwordController.text,
+      'rw_user': General.rwUser.toString(),
+    };
+    try {
+      await controller.callGetLoginAuth(
+        queryParams: queryParams,
       );
-      try {
-        await controller.callLoginDeviceAuth(
-          postLoginDeviceAuthReq.toJson(),
-        );
-        _onPostLoginSuccess();
-      } on PostLoginDeviceAuthResp {
-        _onPostLoginError();
-      } on NoInternetException catch (e) {
-        Get.rawSnackbar(message: e.toString());
-      } catch (e) {
-        //TODO: Handle generic errors
-      }
+      _onPostLoginSuccess();
+    } on GetGetLoginAuthResp {
+      _onPostLoginError();
+    } on NoInternetException catch (e) {
+      Get.rawSnackbar(message: e.toString());
+    } catch (e) {
+      //TODO: Handle generic errors
     }
   }
 
@@ -196,18 +194,25 @@ class LoginScreen extends GetWidget<LoginController> {
 
   /// When the action is triggered, this function uses the [Get] package to
   /// push the named route for the homeScreen.
+  /// While navigation passing email, token, name, as an argument to the
+  /// homeScreen
   void _onPostLoginSuccess() {
-    Get.toNamed(
-      AppRoutes.homeScreen,
-    );
+    Get.toNamed(AppRoutes.homeScreen, arguments: {
+      NavigationArgs.email: controller.getGetLoginAuthResp.user?.email,
+      NavigationArgs.token: controller.getGetLoginAuthResp.token,
+      NavigationArgs.name: controller.getGetLoginAuthResp.user?.name
+    });
   }
 
-  /// Displays a snackBar message when the action is triggered.
-  /// The message is obtained from the `PostLoginDeviceAuthResp` object
-  ///in the `controller` instance.
+  /// Displays an alert dialog when the action is triggered.
+  /// This function is typically called in response to a API call. It retrieves
+  /// the `message` data from the `GetGetLoginAuthResp`
+  /// object in the `controller` using the `message` field.
   void _onPostLoginError() {
-    Get.rawSnackbar(
-        message: controller.postLoginDeviceAuthResp.message.toString() ?? '');
+    Get.defaultDialog(
+        onConfirm: () => Get.back(),
+        title: 'Message',
+        middleText: controller.getGetLoginAuthResp.message.toString() ?? '');
   }
 
   /// Navigates to the signupScreen when the action is triggered.

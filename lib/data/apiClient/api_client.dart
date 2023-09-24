@@ -1,10 +1,13 @@
 import 'package:todo/core/app_export.dart';
 import 'package:todo/core/utils/progress_dialog_utils.dart';
+import 'package:todo/data/models/getLoginAuth/get_get_login_auth_resp.dart';
 import 'package:todo/data/models/loginDeviceAuth/post_login_device_auth_resp.dart';
 import 'package:todo/data/models/me/get_me_resp.dart';
 import 'package:todo/data/models/registerDeviceAuth/post_register_device_auth_resp.dart';
 
 class ApiClient extends GetConnect {
+  var elesenUrl = "https://elesen.mbpj.gov.my";
+
   var url = "https://nodedemo.dhiwise.co";
 
   @override
@@ -26,6 +29,42 @@ class ApiClient extends GetConnect {
   /// user can modify this method with custom logics based on their API response
   bool _isSuccessCall(Response response) {
     return response.isOk;
+  }
+
+  /// Performs API call for https://elesen.mbpj.gov.my/api/auth/login?username=superadmin&password=Asuperadmin2018elesen&rw_user=1
+  ///
+  /// Sends a GET request to the server's 'https://elesen.mbpj.gov.my/api/auth/login?username=superadmin&password=Asuperadmin2018elesen&rw_user=1' endpoint
+  /// with the provided headers and request data
+  /// Returns a [GetGetLoginAuthResp] object representing the response.
+  /// Throws an error if the request fails or an exception occurs.
+  Future<GetGetLoginAuthResp> getLoginAuth({
+    Map<String, String> headers = const {},
+    Map<String, dynamic> queryParams = const {},
+  }) async {
+    ProgressDialogUtils.showProgressDialog();
+    try {
+      await isNetworkConnected();
+      Response response = await httpClient.get(
+        '$elesenUrl/api/auth/login',
+        headers: headers,
+        query: queryParams,
+      );
+      ProgressDialogUtils.hideProgressDialog();
+      if (_isSuccessCall(response)) {
+        return GetGetLoginAuthResp.fromJson(response.body);
+      } else {
+        throw response.body != null
+            ? GetGetLoginAuthResp.fromJson(response.body)
+            : 'Something Went Wrong!';
+      }
+    } catch (error, stackTrace) {
+      ProgressDialogUtils.hideProgressDialog();
+      Logger.log(
+        error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Performs API call for https://nodedemo.dhiwise.co/device/api/v1/user/me
